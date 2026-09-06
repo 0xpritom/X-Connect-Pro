@@ -78,20 +78,65 @@ function exportDatabase() {
 async function importDatabase(event) {
     const file = event.target.files[0];
     if (!file) return;
+    
     try {
-        const text = await file.text();
-        const importedDb = JSON.parse(text);
+        let importedDb = {};
         
+        if (file.name.toLowerCase().endsWith('.json')) {
+            const text = await file.text();
+            importedDb = JSON.parse(text);
+        } else if (file.name.toLowerCase().match(/\.(xlsx?|csv)$/)) {
+            const arrayBuffer = await file.arrayBuffer();
+            const workbook = XLSX.read(arrayBuffer, {type: 'array'});
+            const firstSheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[firstSheetName];
+            const json = XLSX.utils.sheet_to_json(worksheet, {header: 1});
+            
+            if (json.length > 0) {
+                const headers = json[0].map(h => String(h).trim().toLowerCase());
+                const usernameIndex = headers.indexOf('username');
+                
+                if (usernameIndex !== -1) {
+                    for (let j = 1; j < json.length; j++) {
+                        const row = json[j];
+                        if (row.length > usernameIndex && row[usernameIndex]) {
+                            let uname = String(row[usernameIndex]).trim().replace(/^@/, '');
+                            if (uname) {
+                                importedDb[uname.toLowerCase()] = true;
+                            }
+                        }
+                    }
+                } else {
+                    alert("No 'username' column found in the imported file. Make sure there is a header named 'username'.");
+                    event.target.value = '';
+                    return;
+                }
+            }
+        } else {
+            alert("Unsupported file format. Please upload .json, .csv, or .xlsx files.");
+            event.target.value = '';
+            return;
+        }
+
         chrome.storage.local.get(['followedUsers'], (result) => {
             const db = result.followedUsers || {};
-            Object.assign(db, importedDb);
+            let newEntriesCount = 0;
+            
+            for (const key in importedDb) {
+                if (!db[key]) {
+                    db[key] = importedDb[key];
+                    newEntriesCount++;
+                }
+            }
+            
             chrome.storage.local.set({ followedUsers: db }, () => {
-                alert("Database imported successfully!");
+                alert(`Database imported successfully! Added ${newEntriesCount} new users to your database.`);
                 loadDbCount();
             });
         });
     } catch (e) {
-        alert("Invalid backup file! Please select a valid JSON backup.");
+        console.error("Import error:", e);
+        alert("Invalid backup file or error parsing the file.");
     }
     event.target.value = '';
 }
@@ -214,6 +259,37 @@ async function handleFileUpload(event) {
                 } catch (err) {
                     console.error("Error parsing PDF:", file.name, err);
                     alert(`Could not read the PDF file: ${file.name}`);
+                }
+            } else if (file.name.toLowerCase().match(/\.(xlsx?|csv)$/)) {
+                try {
+                    const arrayBuffer = await file.arrayBuffer();
+                    const workbook = XLSX.read(arrayBuffer, {type: 'array'});
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    const json = XLSX.utils.sheet_to_json(worksheet, {header: 1});
+                    
+                    if (json.length > 0) {
+                        const headers = json[0].map(h => String(h).trim().toLowerCase());
+                        const usernameIndex = headers.indexOf('username');
+                        
+                        if (usernameIndex !== -1) {
+                            for (let j = 1; j < json.length; j++) {
+                                const row = json[j];
+                                if (row.length > usernameIndex && row[usernameIndex]) {
+                                    let uname = String(row[usernameIndex]).trim();
+                                    if (uname) {
+                                        savedText += "\n@" + uname;
+                                    }
+                                }
+                            }
+                        } else {
+                            const csvText = XLSX.utils.sheet_to_csv(worksheet);
+                            savedText += "\n" + csvText;
+                        }
+                    }
+                } catch (err) {
+                    console.error("Error parsing Excel/CSV:", file.name, err);
+                    alert(`Could not read the file: ${file.name}`);
                 }
             } else {
                 const text = await file.text();
