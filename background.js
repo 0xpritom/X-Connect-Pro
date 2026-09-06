@@ -58,6 +58,21 @@ chrome.alarms.onAlarm.addListener((alarm) => {
     }
 });
 
+let waitingForActionCompleted = false;
+let scriptInjectTimeoutId = null;
+let nextProcessTimeoutId = null;
+
+function cancelPendingTimeouts() {
+    if (scriptInjectTimeoutId) {
+        clearTimeout(scriptInjectTimeoutId);
+        scriptInjectTimeoutId = null;
+    }
+    if (nextProcessTimeoutId) {
+        clearTimeout(nextProcessTimeoutId);
+        nextProcessTimeoutId = null;
+    }
+}
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     syncState(() => {
         if (message.action === 'START_FOLLOWING') {
@@ -65,8 +80,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             currentIndex = 0;
             isRunning = true;
             isPaused = false;
+            waitingForActionCompleted = false;
             rateLimitCount = 0;
             clearAutoPause();
+            cancelPendingTimeouts();
             stats = { newlyFollowed: 0, alreadyFollowed: 0, totalProcessed: 0 };
             
             updateStatus(`Starting... (0/${queue.length})`);
@@ -81,8 +98,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         else if (message.action === 'STOP_FOLLOWING') {
             isRunning = false;
             isPaused = false;
+            waitingForActionCompleted = false;
             rateLimitCount = 0;
             clearAutoPause();
+            cancelPendingTimeouts();
             updateStatus("Stopped.", true);
             workTabId = null;
             saveState();
@@ -90,6 +109,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         else if (message.action === 'PAUSE_FOLLOWING') {
             isPaused = true;
             clearAutoPause();
+            cancelPendingTimeouts();
             updateStatus(`Paused manually. (${currentIndex}/${queue.length})`);
             saveState();
         }
@@ -98,18 +118,24 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             clearAutoPause();
             updateStatus(`Resuming... (${currentIndex}/${queue.length})`);
             saveState();
-            processNext();
+            if (!waitingForActionCompleted) {
+                processNext();
+            }
         }
         else if (message.action === 'GET_STATUS') {
             sendResponse({ isRunning, isPaused, statusText, stats, total: queue.length, resumeTime });
         }
         else if (message.action === 'ACTION_COMPLETED') {
             if (!isRunning) return;
+            if (!waitingForActionCompleted) return; // Prevent duplicate events
             
-            const username = queue[currentIndex - 1];
+            waitingForActionCompleted = false;
+            cancelPendingTimeouts(); // Clean up any pending timeouts
+            
+            const username = queue[currentIndex];
 
             if (message.result === 'rate_limited') {
-                currentIndex--; // Revert index to retry this user later
+                // Do not increment currentIndex to retry this user later
                 isPaused = true;
                 rateLimitCount++;
                 
@@ -130,19 +156,20 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 return;
             }
             
-            // Reset rate limit count on a successful interaction
+            // Reset rate limit count on a successful interaction or missing user
             rateLimitCount = 0;
             stats.totalProcessed++;
+            currentIndex++; // Move to next user
             
-            if (message.result === 'followed' || message.result === 'already_following') {
+            if (message.result === 'followed' || message.result === 'already_following' || message.result === 'not_found') {
                 chrome.storage.local.get(['followedUsers'], (result) => {
                     const db = result.followedUsers || {};
-                    db[username.toLowerCase()] = true;
+                    db[username.toLowerCase()] = true; // Mark as processed even if not found to prevent infinite retries
                     chrome.storage.local.set({ followedUsers: db });
                 });
                 if (message.result === 'followed') {
                     stats.newlyFollowed++;
-                } else {
+                } else if (message.result === 'already_following') {
                     stats.alreadyFollowed++;
                 }
             }
@@ -151,7 +178,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             updateStatus(`Waiting ${(delay/1000).toFixed(1)}s... (${currentIndex}/${queue.length})`);
             saveState();
             
-            setTimeout(() => {
+            nextProcessTimeoutId = setTimeout(() => {
+                nextProcessTimeoutId = null;
                 if (!isPaused) {
                     processNext();
                 }
@@ -167,6 +195,7 @@ function processNext() {
     if (currentIndex >= queue.length) {
         isRunning = false;
         isPaused = false;
+        waitingForActionCompleted = false;
         updateStatus(`Finished! (${queue.length}/${queue.length})`, true);
         workTabId = null;
         saveState();
@@ -174,21 +203,27 @@ function processNext() {
     }
 
     const username = queue[currentIndex];
-    currentIndex++;
     
-    updateStatus(`Processing @${username} (${currentIndex}/${queue.length})`);
+    updateStatus(`Processing @${username} (${currentIndex + 1}/${queue.length})`);
     saveState();
     
     chrome.tabs.update(workTabId, { url: `https://x.com/${username}` }, (tab) => {
         // Wait for page to load before injecting
-        setTimeout(() => {
+        waitingForActionCompleted = false;
+        cancelPendingTimeouts();
+        scriptInjectTimeoutId = setTimeout(() => {
+            scriptInjectTimeoutId = null;
             if(!isRunning || isPaused) return;
+            
+            waitingForActionCompleted = true;
             chrome.scripting.executeScript({
                 target: { tabId: workTabId },
                 files: ['content.js']
             }).catch(err => {
                 console.error("Error injecting script:", err);
+                waitingForActionCompleted = false;
                 stats.totalProcessed++;
+                currentIndex++;
                 saveState();
                 processNext();
             });
