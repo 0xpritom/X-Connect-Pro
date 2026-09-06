@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    
+    :root {
+        --x-black: #0f1419;
+        --x-blue: #1d9bf0;
+        --gray-50: #f9fafb;
+        --gray-100: #f3f4f6;
+        --gray-200: #e5e7eb;
+        --gray-300: #d1d5db;
+        --gray-500: #6b7280;
+        --gray-900: #111827;
+        --radius-sm: 6px;
+        --radius-md: 8px;
+        --radius-lg: 12px;
+    }
+
+    body { 
+        width: 340px; 
+        margin: 0; 
+        font-family: 'Inter', -apple-system, sans-serif; 
+        color: var(--gray-900); 
+        background: #ffffff; 
+        -webkit-font-smoothing: antialiased;
+    }
+
+    .header { 
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 20px; 
+        border-bottom: 1px solid var(--gray-200); 
+    }
+    
+    .header h1 {
+        margin: 0;
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--x-black);
+        letter-spacing: -0.01em;
+    }
+
+    .header-badge {
+        background: var(--x-black);
+        color: #fff;
+        font-size: 10px;
+        font-weight: 700;
+        padding: 2px 6px;
+        border-radius: 4px;
+        letter-spacing: 0.5px;
+    }
+
+    .container { padding: 20px; }
+
+    .input-group { margin-bottom: 16px; }
+    
+    label { 
+        display: block; 
+        font-size: 12px; 
+        font-weight: 600; 
+        color: var(--gray-900); 
+        margin-bottom: 8px; 
+    }
+    
+    textarea { 
+        width: 100%; 
+        height: 72px; 
+        box-sizing: border-box; 
+        padding: 12px; 
+        border: 1px solid var(--gray-300); 
+        border-radius: var(--radius-md); 
+        font-size: 13px; 
+        font-family: inherit; 
+        transition: all 0.2s; 
+        background: var(--gray-50); 
+        resize: none;
+    }
+    
+    textarea:focus { 
+        outline: none; 
+        border-color: var(--x-blue); 
+        background: #ffffff;
+        box-shadow: 0 0 0 3px rgba(29, 155, 240, 0.15); 
+    }
+    
+    .file-upload { 
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+        width: 100%; 
+        padding: 12px; 
+        box-sizing: border-box; 
+        border: 1px dashed var(--gray-300); 
+        border-radius: var(--radius-md); 
+        cursor: pointer; 
+        color: var(--gray-500); 
+        font-size: 13px; 
+        font-weight: 500; 
+        background: var(--gray-50); 
+        transition: all 0.2s; 
+    }
+    
+    .file-upload:hover { 
+        border-color: var(--gray-500); 
+        background: var(--gray-100); 
+        color: var(--gray-900);
+    }
+    
+    input[type="file"] { display: none; }
+    
+    .btn { 
+        width: 100%; 
+        padding: 12px; 
+        border: none; 
+        border-radius: var(--radius-md); 
+        font-size: 13px; 
+        font-weight: 600; 
+        font-family: inherit;
+        cursor: pointer; 
+        transition: all 0.2s; 
+        box-sizing: border-box; 
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 6px;
+    }
+    
+    .btn-primary { background: var(--x-black); color: white; margin-top: 8px; }
+    .btn-primary:hover { background: #272c30; }
+    
+    .btn-outline { background: #ffffff; border: 1px solid var(--gray-300); color: var(--gray-900); padding: 8px;}
+    .btn-outline:hover { background: var(--gray-50); border-color: var(--gray-500); }
+
+    .btn-danger { background: #FEF2F2; color: #DC2626; }
+    .btn-danger:hover { background: #FEE2E2; }
+
+    .btn-warning { background: #FFFBEB; color: #D97706; }
+    .btn-warning:hover { background: #FEF3C7; }
+    
+    .btn-success { background: #ECFDF5; color: #059669; }
+    .btn-success:hover { background: #D1FAE5; }
+
+    .btn-group { display: flex; gap: 8px; margin-top: 12px; }
+    .btn-group .btn { margin: 0; }
+
+    .stats-board { 
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin-top: 20px; 
+    }
+    
+    .stat-card { 
+        background: var(--gray-50); 
+        border: 1px solid var(--gray-200);
+        border-radius: var(--radius-lg);
+        padding: 12px 14px;
+        text-align: left;
+    }
+    
+    .stat-label { 
+        font-size: 10px; 
+        color: var(--gray-500); 
+        font-weight: 600; 
+        text-transform: uppercase; 
+        letter-spacing: 0.05em; 
+    }
+    
+    .stat-value { 
+        display: block; 
+        font-size: 20px; 
+        font-weight: 700; 
+        color: var(--gray-900); 
+        margin-top: 4px; 
+    }
+
+    .stat-value.new { color: #059669; }
+    
+    .progress-wrapper { 
+        margin-top: 20px; 
+        display: none; 
+        background: var(--gray-50);
+        border: 1px solid var(--gray-200);
+        border-radius: var(--radius-lg);
+        padding: 16px;
+    }
+    
+    .status-text { 
+        font-size: 12px; 
+        font-weight: 600; 
+        color: var(--gray-900); 
+        margin-bottom: 12px;
+        text-align: left;
+    }
+
+    .timer-text {
+        font-size: 18px;
+        font-weight: 700;
+        color: #DC2626;
+        margin-bottom: 12px;
+        display: none;
+        text-align: left;
+    }
+    
+    .progress-bar-bg { 
+        width: 100%; 
+        height: 6px; 
+        background: var(--gray-200); 
+        border-radius: 99px; 
+        overflow: hidden; 
+    }
+    
+    .progress-bar-fill { 
+        height: 100%; 
+        background: var(--x-black); 
+        width: 0%; 
+        transition: width 0.3s ease; 
+        border-radius: 99px;
+    }
+    
+    .file-list { 
+        display: none; 
+        margin-top: 12px; 
+        background: var(--gray-50); 
+        padding: 12px; 
+        border-radius: var(--radius-md); 
+        border: 1px solid var(--gray-200); 
+    }
+    
+    .file-items { 
+        margin: 0 0 10px 0; 
+        color: var(--gray-900); 
+        font-weight: 500; 
+        font-size: 12px; 
+        line-height: 1.6; 
+        max-height: 60px; 
+        overflow-y: auto; 
+    }
+
+    .footer-actions {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 20px;
+        padding-top: 16px;
+        border-top: 1px solid var(--gray-200);
+    }
+
+    .footer-actions label, .footer-actions button {
+        font-size: 11px;
+        color: var(--gray-500);
+        background: none;
+        border: none;
+        padding: 0;
+        cursor: pointer;
+        font-weight: 600;
+        width: auto;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        transition: color 0.2s;
+    }
+    
+    .footer-actions label:hover, .footer-actions button:hover {
+        color: var(--x-black);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <h1>X Connect Pro</h1>
+    <div class="header-badge">PRO</div>
+  </div>
+
+  <div class="container">
+    <div class="input-group">
+      <label>Manual Input</label>
+      <textarea id="manualInput" placeholder="Paste text containing @usernames here..."></textarea>
+    </div>
+
+    <div class="input-group">
+      <label>Upload Files</label>
+      <label for="fileInput" class="file-upload" id="fileUploadLabel">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+        Select TXT, CSV, or PDF
+      </label>
+      <input type="file" id="fileInput" accept=".csv, .txt, .pdf" multiple>
+      
+      <div id="fileListContainer" class="file-list">
+        <div id="fileName" class="file-items"></div>
+        <div style="display: flex; gap: 8px;">
+            <button id="addMoreBtn" class="btn btn-outline" style="flex: 1;">Add More</button>
+            <button id="clearFilesBtn" class="btn btn-outline" style="flex: 1; color: #DC2626;">Clear</button>
+        </div>
+      </div>
+    </div>
+
+    <button id="startBtn" class="btn btn-primary">Start Execution</button>
+    
+    <div id="actionButtons" class="btn-group" style="display: none;">
+      <button id="pauseBtn" class="btn btn-warning" style="flex: 1;">Pause</button>
+      <button id="resumeBtn" class="btn btn-success" style="flex: 1; display: none;">Resume</button>
+      <button id="stopBtn" class="btn btn-danger" style="flex: 1;">Stop</button>
+    </div>
+
+    <div class="progress-wrapper" id="progressContainer">
+      <div id="statusText" class="status-text">Processing... (0/0)</div>
+      <div id="timerText" class="timer-text"></div>
+      <div class="progress-bar-bg">
+        <div class="progress-bar-fill" id="progressBar"></div>
+      </div>
+    </div>
+
+    <div class="stats-board">
+      <div class="stat-card">
+        <span class="stat-label">Newly Followed</span>
+        <span class="stat-value new" id="newlyFollowed">0</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Already Saved</span>
+        <span class="stat-value" id="alreadyFollowed">0</span>
+      </div>
+    </div>
+
+    <div class="footer-actions">
+      <button id="exportBtn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+        Export Database (<span id="dbCount">0</span>)
+      </button>
+      <label for="importDb">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+        Import DB
+      </label>
+      <input type="file" id="importDb" accept=".json" style="display: none;">
+    </div>
+  </div>
+
+  <script src="pdf.min.js"></script>
+  <script src="pdf.worker.min.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>
